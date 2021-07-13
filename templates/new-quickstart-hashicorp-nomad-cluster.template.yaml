@@ -1,0 +1,245 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  (qs-1nae6brn2) HashiCorp Nomad Cluster, License: Apache 2.0 (Please do not
+  remove) Aug,16,2017
+Metadata:
+  'AWS::CloudFormation::Interface':
+    ParameterGroups:
+      - Label: 'Environment Information'
+        Parameters:
+          - EnvironmentName
+      - Label:
+          default: VPC Network Configuration
+        Parameters:
+          - VPCCIDR
+          - VPCID
+          - PrivateSubnet1ID
+          - PrivateSubnet2ID
+          - PrivateSubnet3ID
+          - AccessCIDR
+      - Label:
+          default: Node Access Configuration
+        Parameters:
+          - BastionSecurityGroupID
+          - KeyPairName
+      - Label:
+          default: Nomad Cluster Setup
+        Parameters:
+          - NomadInstanceType
+          - NomadServerNodes
+          - NomadEc2RetryTagKey
+          - NomadEc2RetryTagValue
+      - Label:
+          default: AWS Quick Start Configuration
+        Parameters:
+          - QSS3BucketName
+          - QSS3KeyPrefix
+
+    ParameterLabels:
+      # Cluster Information
+      EnvironmentName:
+        default: Environment Name
+
+      VPCID:
+        default: VPC ID
+      VPCCIDR:
+        default: VPC CIDR
+      PrivateSubnet1ID:
+        default: Private Subnet 1 ID
+      PrivateSubnet2ID:
+        default: Private Subnet 2 ID
+      PrivateSubnet3ID:
+        default: Private Subnet 3 ID
+      AccessCIDR:
+        default: Permitted IP range
+
+      # Node Access Parameters
+      BastionSecurityGroupID:
+        default: ID of the bastion host security group to enable SSH connections (e.g., sg-7f16e910)
+      KeyPairName:
+        default: Key Name
+      # Nomad Cluster Setup Parameters
+      NomadServerNodes:
+        default: Nomad Server Nodes
+      NomadInstanceType:
+        default: Nomad Instance Type
+      NomadEc2RetryTagKey:
+        default: Nomad EC2 Retry Tag Key
+      NomadEc2RetryTagValue:
+        default: Nomad EC2 Retry Tag Value
+
+      # AWS Quick Start Configuration Parameters
+      QSS3BucketName:
+        default: Quick Start S3 Bucket Name
+      QSS3KeyPrefix:
+        default: Quick Start S3 Key Prefix
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    Description: >-
+      Environment name to use for the generated environment. This is used as a
+      tags applied to the generated resources.
+
+  VPCID:
+    Type: "AWS::EC2::VPC::Id"
+    Description: VPC ID
+  VPCCIDR:
+    Type: String
+    AllowedPattern: >-
+      ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/([0-9]|[1-2][0-9]|3[0-2]))$
+    Description: CIDR block for the VPC
+  PrivateSubnet1ID:
+    Type: "AWS::EC2::Subnet::Id"
+    Description: "ID of the private subnet 1 in Availability Zone 1 (e.g., subnet-xxxxxxxx)"
+  PrivateSubnet2ID:
+    Type: "AWS::EC2::Subnet::Id"
+    Description: "ID of the private subnet 2 in Availability Zone 2 (e.g., subnet-xxxxxxxx)"
+  PrivateSubnet3ID:
+    Type: "AWS::EC2::Subnet::Id"
+    Description: "ID of the private subnet 3 in Availability Zone 3 (e.g., subnet-xxxxxxxx)"
+  AccessCIDR:
+    Type: String
+    AllowedPattern: >-
+      ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/([0-9]|[1-2][0-9]|3[0-2]))$
+    Description: >-
+      The CIDR IP range that is permitted to access Nomad. Note: a value of
+      0.0.0.0/0 will allow access from ANY IP address
+
+  BastionSecurityGroupID:
+    Type: "AWS::EC2::SecurityGroup::Id"
+    Description: ID of the bastion host security group to enable SSH connections (e.g., sg-7f16e910)
+  KeyPairName:
+    Type: "AWS::EC2::KeyPair::KeyName"
+    Description: Name of an existing EC2 KeyPair to enable SSH access to the instances
+    # MinLength: 1
+    ConstraintDescription: Must be the name of an existing EC2 KeyPair.
+
+  NomadInstanceType:
+    Type: String
+    AllowedValues:
+      - t2.micro
+      - t2.small
+      - t2.medium
+      - t2.large
+      - m4.large
+      - m4.xlarge
+      - m4.2xlarge
+      - m4.4xlarge
+      - m4.10xlarge
+      - m3.medium
+      - m3.large
+      - m3.xlarge
+      - m3.2xlarge
+      - c4.large
+      - c4.xlarge
+      - c4.2xlarge
+      - c4.4xlarge
+      - c4.8xlarge
+      - c3.large
+      - c3.xlarge
+      - c3.2xlarge
+      - c3.4xlarge
+      - c3.8xlarge
+      - r3.large
+      - r3.xlarge
+      - r3.2xlarge
+      - r3.4xlarge
+      - r3.8xlarge
+      - i2.xlarge
+      - i2.2xlarge
+      - i2.4xlarge
+      - i2.8xlarge
+    ConstraintDescription: Choose an instance type. m4.large or larger recommended.
+    Default: m4.large
+    Description: Nomad node instance type
+  NomadServerNodes:
+    Type: String
+    AllowedValues:
+      - '3'
+      - '5'
+      - '7'
+    Default: '3'
+    Description: >-
+      Sets the desired capacity and maximum size for the Nomad Server node
+      cluster. Values recommended are: 3, 5, and 7
+  NomadEc2RetryTagKey:
+    Type: String
+    Description:
+      The EC2 instance tag key to filter on when joining to other Nomad server
+      nodes.
+    Default: "quickstart-nomad-cluster"
+    ConstraintDescription: Must match EC2 Tag Name requirements.
+  NomadEc2RetryTagValue:
+    Type: String
+    Description:
+      The EC2 instance tag value to filter on when joining to other Nomad server
+      nodes.
+    Default: "nomad-server"
+    ConstraintDescription: Must match EC2 Tag Name requirements.
+
+  QSS3BucketName:
+    Type: String
+    AllowedPattern: '^[0-9a-zA-Z]+([0-9a-zA-Z-]*[0-9a-zA-Z])*$'
+    ConstraintDescription: >-
+      Quick Start bucket name can include numbers, lowercase letters, uppercase
+      letters, and hyphens (-). It cannot start or end with a hyphen (-).
+    Default: aws-quickstart
+    Description: >-
+      S3 bucket name for the Quick Start assets. Quick Start bucket name can
+      include numbers, lowercase letters, uppercase letters, and hyphens (-). It
+      cannot start or end with a hyphen (-).
+  QSS3KeyPrefix:
+    Type: String
+    AllowedPattern: '^[0-9a-zA-Z-/]*$'
+    ConstraintDescription: >-
+      Quick Start key prefix can include numbers, lowercase letters, uppercase
+      letters, hyphens (-), and forward slash (/).
+    Default: quickstart-hashicorp-nomad/
+    Description: >-
+      S3 key prefix for the Quick Start assets. Quick Start key prefix can
+      include numbers, lowercase letters, uppercase letters, hyphens (-), and
+      forward slash (/).
+
+Conditions:
+  GovCloudCondition: !Equals ["us-gov-west-1", !Ref 'AWS::Region']
+
+Resources:
+  NomadServerSSHStack:
+    Type: 'AWS::CloudFormation::Stack'
+    Properties:
+      Parameters:
+        BastionSecurityGroupID: !Ref BastionSecurityGroupID
+        VPCID: !Ref VPCID
+        VPCCIDR: !Ref VPCCIDR
+      TemplateURL: !Sub 
+        - "https://${QSS3BucketName}.${QSS3Region}.amazonaws.com/${QSS3KeyPrefix}templates/new-quickstart-hashicorp-nomad-ssh.template.yaml"
+        - QSS3Region: !If [GovCloudCondition, "s3-us-gov-west-1", "s3"]
+
+  NomadServerStack:
+    Type: 'AWS::CloudFormation::Stack'
+    Properties:
+      Parameters:
+        EnvironmentName: !Ref EnvironmentName
+        PrivateSubnet1ID: !Ref PrivateSubnet1ID
+        PrivateSubnet2ID: !Ref PrivateSubnet2ID
+        PrivateSubnet3ID: !Ref PrivateSubnet3ID
+        KeyPairName: !Ref KeyPairName
+        NomadInstanceType: !Ref NomadInstanceType
+        NomadServerNodes: !Ref NomadServerNodes
+        NomadEc2RetryTagKey: !Ref NomadEc2RetryTagKey
+        NomadEc2RetryTagValue: !Ref NomadEc2RetryTagValue
+        NomadSecGroup: !GetAtt NomadServerSSHStack.Outputs.NomadSecGroup
+        QSS3BucketName: !Ref QSS3BucketName
+        QSS3KeyPrefix: !Ref QSS3KeyPrefix
+      TemplateURL: !Sub 
+        - "https://${QSS3BucketName}.${QSS3Region}.amazonaws.com/${QSS3KeyPrefix}templates/new-quickstart-hashicorp-nomad-server-node.template.yaml"
+        - QSS3Region: !If [GovCloudCondition, "s3-us-gov-west-1", "s3"]
+
+Outputs:
+  NomadEc2RetryTagKey:
+    Value: !GetAtt NomadServerStack.Outputs.NomadEc2RetryTagKey
+    Description: The EC2 instance tag key to filter on when joining to Nomad server nodes.
+  NomadEc2RetryTagValue:
+    Value: !GetAtt NomadServerStack.Outputs.NomadEc2RetryTagValue
+    Description: The EC2 instance tag value to filter on when joining to Nomad server nodes.
